@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Store Map</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .upload-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+        }
+        .upload-group {
+            margin-bottom: 15px;
+        }
+        .upload-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .upload-group input[type="file"] {
+            display: block;
+            margin-bottom: 10px;
+        }
+        #loadButton {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #loadButton:hover {
+            background-color: #27ae60;
+        }
+        #loadButton:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        #mapCanvas {
+            border: 1px solid #ccc;
+            background-color: white;
+            margin-bottom: 20px;
+            display: none;
+        }
+        #itemDisplay {
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            min-height: 200px;
+            display: none;
+        }
+        #tooltip {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 14px;
+            pointer-events: none;
+            display: none;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Store Map</h1>
+        
+        <div class="upload-section">
+            <div class="upload-group">
+                <label for="verticesFile">Store Layout (vertices.json):</label>
+                <input type="file" id="verticesFile" accept=".json">
+            </div>
+            
+            <div class="upload-group">
+                <label for="itemsFile">Items Data (items.csv):</label>
+                <input type="file" id="itemsFile" accept=".csv">
+            </div>
+            
+            <button id="loadButton" disabled>Load Store Map</button>
+            <div id="uploadError" class="error"></div>
+        </div>
+
+        <canvas id="mapCanvas" width="1000" height="900"></canvas>
+        <div id="tooltip"></div>
+        <div id="itemDisplay">
+            <h2>Items in Selected Section</h2>
+            <div id="itemList"></div>
+        </div>
+    </div>
+    <script src="map.js"></script>
+</body>
+</html> 

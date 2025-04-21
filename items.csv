@@ -1,0 +1,51 @@
+face_id,section_name,category,item_name,price,stock
+B1F1,Dairy_1,Dairy,Whole Milk 1gal,4.99,25
+B1F1,Dairy_1,Dairy,Low-Fat Milk 1gal,4.79,30
+B1F2,Dairy_2,Dairy,Greek Yogurt,3.99,40
+B1F2,Dairy_2,Dairy,Cottage Cheese,4.49,20
+B1F3,Dairy_3,Dairy,Sour Cream,2.99,35
+B1F3,Dairy_3,Dairy,Heavy Cream,3.99,25
+B1F4,Frozen_1,Frozen,Ice Cream Vanilla,5.99,40
+B1F4,Frozen_1,Frozen,Frozen Pizza,6.99,35
+B1F5,Frozen_2,Frozen,Frozen Vegetables Mix,3.99,50
+B1F5,Frozen_2,Frozen,TV Dinners,4.99,45
+B1F6,Meat_1,Meat,Ground Beef 1lb,7.99,30
+B1F6,Meat_1,Meat,Chicken Breast,9.99,25
+B1F7,Meat_2,Meat,Pork Chops,8.99,20
+B1F7,Meat_2,Meat,Salmon Fillet,12.99,15
+B1F8,Deli_1,Deli,Sliced Turkey,8.99,25
+B1F8,Deli_1,Deli,Ham,7.99,30
+B1F9,Deli_2,Deli,Swiss Cheese,6.99,35
+B1F9,Deli_2,Deli,Salami,5.99,40
+B2F1,Snacks_1,Snacks,Potato Chips,3.99,60
+B2F1,Snacks_1,Snacks,Tortilla Chips,3.49,55
+B2F2,Snacks_2,Snacks,Pretzels,2.99,45
+B2F2,Snacks_2,Snacks,Popcorn,3.99,50
+B2F3,Beverages_1,Beverages,Cola 12-pack,6.99,70
+B2F3,Beverages_1,Beverages,Lemon Soda 12-pack,6.99,65
+B2F4,Beverages_2,Beverages,Sparkling Water 24-pack,8.99,55
+B2F4,Beverages_2,Beverages,Energy Drinks 6-pack,7.99,40
+B2F5,Pantry_1,Pantry,Pasta,2.99,80
+B2F5,Pantry_1,Pantry,Rice 5lb,5.99,70
+B2F6,Pantry_2,Pantry,Canned Soup,1.99,90
+B2F6,Pantry_2,Pantry,Canned Beans,1.49,85
+B2F7,Bakery_1,Bakery,Fresh Bread,3.99,40
+B2F7,Bakery_1,Bakery,Bagels 6-pack,4.99,35
+B2F8,Bakery_2,Bakery,Muffins 4-pack,5.99,30
+B2F8,Bakery_2,Bakery,Cookies 12-pack,4.99,45
+S1,Checkout_1,Checkout,Magazines,4.99,50
+S1,Checkout_1,Checkout,Candy Bars,1.49,100
+S2,Checkout_2,Checkout,Gift Cards,25.00,200
+S2,Checkout_2,Checkout,Batteries,8.99,75
+S3,Electronics_1,Electronics,Phone Chargers,12.99,40
+S3,Electronics_1,Electronics,Earbuds,19.99,30
+S4,Electronics_2,Electronics,USB Drives,14.99,45
+S4,Electronics_2,Electronics,Memory Cards,24.99,35
+S5,Pharmacy_1,Pharmacy,Pain Relievers,6.99,60
+S5,Pharmacy_1,Pharmacy,Cold Medicine,8.99,50
+S6,Pharmacy_2,Pharmacy,Vitamins,12.99,70
+S6,Pharmacy_2,Pharmacy,First Aid Kit,15.99,40
+S7,Home_Goods_1,Home Goods,Paper Towels 6-pack,7.99,80
+S7,Home_Goods_1,Home Goods,Toilet Paper 12-pack,12.99,75
+S8,Home_Goods_2,Home Goods,Laundry Detergent,14.99,55
+S8,Home_Goods_2,Home Goods,Dish Soap,3.99,65 
