@@ -9,6 +9,11 @@ An interactive web application that displays store layouts and item locations us
 - Click on sections to view items in that area
 - Dropdown selection for store and floor
 - Real-time data updates from MongoDB
+- Shopping list functionality with:
+  - Add items to shopping list
+  - Remove items from shopping list
+  - Color-coded markers on map for items in shopping list
+  - Floating shopping list sidebar
 
 ## Prerequisites
 
@@ -112,11 +117,15 @@ http://localhost:5001
 5. Click on sections to view items in that area
 6. Use mouse wheel to zoom in/out
 7. Click and drag to pan the map
+8. Add items to your shopping list by clicking the "Add to Shopping List" button
+9. View your shopping list in the floating sidebar
+10. Remove items from the shopping list using the "Remove" button
+11. See color-coded markers on the map for items in your shopping list
 
 ## Project Structure
 
 - `index.html`: Frontend interface
-- `map.js`: Map rendering and interaction logic
+- `map.js`: Map rendering, interaction logic, and shopping list functionality
 - `server.py`: Flask backend server
 - `import_data.py`: MongoDB data import script
 - `init.sh`: Initialization script
