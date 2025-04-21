@@ -13,6 +13,59 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            display: flex;
+            gap: 20px;
+        }
+        .map-section {
+            flex: 2;
+        }
+        .shopping-list-section {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+            margin-left: 20px;
+        }
+        .shopping-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .shopping-list-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .shopping-list-item .item-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .shopping-list-item .item-name {
+            flex-grow: 1;
+        }
+        .shopping-list-item button {
+            padding: 5px 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .shopping-list-item button:hover {
+            background-color: #c0392b;
         }
         .upload-section {
             background-color: white;
@@ -67,25 +120,32 @@
 </head>
 <body>
     <div class="container">
-        <h1>Store Map</h1>
-        
-        <div class="upload-section">
-            <div class="controls">
-                <select id="store-select">
-                    <option value="">Select Store</option>
-                </select>
-                <select id="floor-select">
-                    <option value="">Select Floor</option>
-                </select>
+        <div class="map-section">
+            <h1>Store Map</h1>
+            
+            <div class="upload-section">
+                <div class="controls">
+                    <select id="store-select">
+                        <option value="">Select Store</option>
+                    </select>
+                    <select id="floor-select">
+                        <option value="">Select Floor</option>
+                    </select>
+                </div>
+                <div id="uploadError" class="error"></div>
             </div>
-            <div id="uploadError" class="error"></div>
+
+            <canvas id="mapCanvas" width="1000" height="900"></canvas>
+            <div id="tooltip"></div>
+            <div id="itemDisplay">
+                <h2>Items in Selected Section</h2>
+                <div id="itemList"></div>
+            </div>
         </div>
 
-        <canvas id="mapCanvas" width="1000" height="900"></canvas>
-        <div id="tooltip"></div>
-        <div id="itemDisplay">
-            <h2>Items in Selected Section</h2>
-            <div id="itemList"></div>
+        <div class="shopping-list-section">
+            <h2>Shopping List</h2>
+            <ul id="shoppingList" class="shopping-list"></ul>
         </div>
     </div>
 

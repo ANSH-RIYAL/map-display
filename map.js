@@ -2,6 +2,8 @@
 let faces = [];
 let items = [];
 let storeLayout = null;
+let shoppingList = new Set(); // Track items in shopping list
+let itemMarkers = new Map(); // Track markers for items in shopping list
 
 // UI elements
 const canvas = document.getElementById('mapCanvas');
@@ -100,6 +102,17 @@ function generateFaces() {
     console.log('Available items face IDs:', [...new Set(items.map(i => i.face_id))]);
 }
 
+// Add this function to generate a unique color for each face
+function getFaceColor(faceId) {
+    // Create a mapping of face IDs to their index in the sequence
+    const faceIndex = faces.findIndex(f => f.face_id === faceId);
+    
+    // Use the index to generate a unique HSL color
+    // We have 90 faces, so we'll distribute them evenly across the color wheel
+    const hue = (faceIndex * (360 / faces.length)) % 360;
+    return `hsl(${hue}, 80%, 50%)`;
+}
+
 // Draw the store map
 function drawMap(highlightedFace = null) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -158,6 +171,14 @@ function drawMap(highlightedFace = null) {
         ctx.lineWidth = 4;
         ctx.stroke();
     }
+    
+    // Draw markers for items in shopping list
+    itemMarkers.forEach((marker, itemName) => {
+        ctx.beginPath();
+        ctx.arc(marker.x, marker.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = getFaceColor(marker.faceId);
+        ctx.fill();
+    });
     
     ctx.restore();
 }
@@ -249,24 +270,69 @@ function displayItems(faceId) {
     // Find items for the selected face
     const faceItems = items.filter(item => item.face_id === faceId);
     
-    if (faceItems.length > 0) {
-        // Create a list of items
-        const itemsHTML = faceItems.map(item => `
-            <div class="item">
-                <h3>${item.item_name}</h3>
-                <p>Category: ${item.category}</p>
-                <p>Price: $${item.price}</p>
-                <p>Stock: ${item.stock}</p>
-            </div>
-        `).join('');
+    // Clear previous items
+    itemList.innerHTML = '';
+    
+    // Display each item
+    faceItems.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'item';
+        itemElement.innerHTML = `
+            <h3>${item.item_name}</h3>
+            <p>Section: ${item.section_name}</p>
+            <button onclick="addToShoppingList('${item.item_name}', '${item.face_id}')">Add to Shopping List</button>
+        `;
+        itemList.appendChild(itemElement);
+    });
+}
+
+// Add item to shopping list
+function addToShoppingList(itemName, faceId) {
+    if (!shoppingList.has(itemName)) {
+        shoppingList.add(itemName);
         
-        itemList.innerHTML = itemsHTML;
-    } else {
-        itemList.innerHTML = '<p>No items found in this section</p>';
+        // Add to shopping list UI
+        const shoppingListElement = document.getElementById('shoppingList');
+        const listItem = document.createElement('li');
+        listItem.className = 'shopping-list-item';
+        listItem.innerHTML = `
+            <div class="item-dot" style="background-color: ${getFaceColor(faceId)}"></div>
+            <span class="item-name">${itemName}</span>
+            <button onclick="removeFromShoppingList('${itemName}')">Remove</button>
+        `;
+        shoppingListElement.appendChild(listItem);
+        
+        // Add marker to map
+        const face = faces.find(f => f.face_id === faceId);
+        if (face) {
+            const midX = (face.start_x + face.end_x) / 2;
+            const midY = (face.start_y + face.end_y) / 2;
+            itemMarkers.set(itemName, { 
+                x: midX, 
+                y: midY,
+                faceId: faceId
+            });
+            drawMap();
+        }
+    }
+}
+
+// Remove item from shopping list
+function removeFromShoppingList(itemName) {
+    shoppingList.delete(itemName);
+    itemMarkers.delete(itemName);
+    
+    // Remove from shopping list UI
+    const shoppingListElement = document.getElementById('shoppingList');
+    const items = shoppingListElement.getElementsByClassName('shopping-list-item');
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].querySelector('span').textContent === itemName) {
+            items[i].remove();
+            break;
+        }
     }
     
-    // Make sure the display is visible
-    document.getElementById('itemDisplay').style.display = 'block';
+    drawMap();
 }
 
 // Check if point is near line segment
