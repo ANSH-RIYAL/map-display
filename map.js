@@ -268,7 +268,8 @@ function isPointNearLine(x, y, face) {
     const dy = y - yy;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
-    return distance < 1; // Reduced to 1 pixel threshold
+    // Return true if distance is less than 4 pixels for hover, 3 pixels for click
+    return distance < 4;
 }
 
 // Handle mouse move for hover effect
@@ -277,71 +278,36 @@ function handleMouseMove(event) {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     
-    let hoveredFace = null;
+    // Find the face under the cursor
+    const face = faces.find(f => isPointNearLine(x, y, f));
     
-    // Check for hovering over faces
-    for (const face of faces) {
-        if (isPointNearLine(x, y, face)) {
-            hoveredFace = face;
-            break;
-        }
-    }
-    
-    // Update display
-    if (hoveredFace) {
-        // Clear any existing timeout since we have a new hover
+    if (face) {
+        // Clear any existing timeout
         if (tooltipTimeout) {
             clearTimeout(tooltipTimeout);
         }
         
-        drawMap(hoveredFace);
+        // Find the face info in items data
+        const faceInfo = items.find(item => item.face_id === face.face_id);
         
-        // Calculate the center point of the face
-        const centerX = (hoveredFace.start_x + hoveredFace.end_x) / 2;
-        const centerY = (hoveredFace.start_y + hoveredFace.end_y) / 2;
-        
-        // Position tooltip at the center of the face
-        const tooltipLeft = rect.left + centerX - tooltip.offsetWidth / 2;
-        const tooltipTop = rect.top + centerY - 45;
-        
-        tooltip.style.left = tooltipLeft + 'px';
-        tooltip.style.top = tooltipTop + 'px';
-        
-        // Find face info in items data
-        const faceInfo = items.find(item => item.face_id === hoveredFace.face_id);
-        
+        // Set tooltip content with both face ID and section name
         if (faceInfo) {
-            tooltip.innerHTML = `
-                <div style="font-weight:bold">${faceInfo.section_name}</div>
-                <div>${faceInfo.category}</div>
-            `;
+            tooltip.textContent = `Face ID: ${face.face_id}\nSection: ${faceInfo.section_name}`;
         } else {
-            tooltip.innerHTML = `<div style="font-weight:bold">Face ${hoveredFace.face_id}</div>`;
+            tooltip.textContent = `Face ID: ${face.face_id}\nSection: Not Assigned`;
         }
         
         tooltip.style.display = 'block';
+        tooltip.style.left = (event.clientX + 10) + 'px';
+        tooltip.style.top = (event.clientY + 10) + 'px';
+        
+        // Set a timeout to hide the tooltip
+        tooltipTimeout = setTimeout(() => {
+            tooltip.style.display = 'none';
+        }, 2000);
     } else {
-        // If we're not hovering over a face, start the timeout
-        if (tooltip.style.display === 'block' && !tooltipTimeout) {
-            tooltipTimeout = setTimeout(() => {
-                drawMap();
-                tooltip.style.display = 'none';
-                tooltipTimeout = null;
-            }, 3000);
-        }
-    }
-}
-
-// Add this function to clean up the tooltip when leaving the canvas
-function handleMouseLeave() {
-    if (tooltipTimeout) {
-        clearTimeout(tooltipTimeout);
-    }
-    tooltipTimeout = setTimeout(() => {
-        drawMap();
         tooltip.style.display = 'none';
-        tooltipTimeout = null;
-    }, 3000);
+    }
 }
 
 // Handle click to display items
@@ -350,31 +316,74 @@ function handleClick(event) {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     
-    for (const face of faces) {
-        if (isPointNearLine(x, y, face)) {
-            displayItems(face.face_id);
-            break;
+    // Find the face under the cursor with a 3-pixel buffer
+    const face = faces.find(f => {
+        const A = x - f.start_x;
+        const B = y - f.start_y;
+        const C = f.end_x - f.start_x;
+        const D = f.end_y - f.start_y;
+        
+        const dot = A * C + B * D;
+        const len_sq = C * C + D * D;
+        let param = -1;
+        
+        if (len_sq !== 0) {
+            param = dot / len_sq;
         }
+        
+        let xx, yy;
+        
+        if (param < 0) {
+            xx = f.start_x;
+            yy = f.start_y;
+        } else if (param > 1) {
+            xx = f.end_x;
+            yy = f.end_y;
+        } else {
+            xx = f.start_x + param * C;
+            yy = f.start_y + param * D;
+        }
+        
+        const dx = x - xx;
+        const dy = y - yy;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        return distance < 3;
+    });
+    
+    if (face) {
+        displayItems(face.face_id);
     }
 }
 
 // Display items for selected face
 function displayItems(faceId) {
-    const faceInfo = items.find(item => item.face_id === faceId);
+    const itemList = document.getElementById('itemList');
+    const itemDisplay = document.getElementById('itemDisplay');
     
-    if (faceInfo) {
-        let html = `<h3>${faceInfo.section_name} (${faceInfo.category})</h3><ul>`;
-        faceInfo.items.forEach(item => {
-            html += `<li>${item.item_name} - $${item.price} (Stock: ${item.stock})</li>`;
-        });
-        html += '</ul>';
-        itemList.innerHTML = html;
+    // Find items for the selected face
+    const faceItems = items.find(item => item.face_id === faceId);
+    
+    if (faceItems && faceItems.items && faceItems.items.length > 0) {
+        // Create a list of items
+        const itemsHTML = faceItems.items.map(item => `
+            <div class="item">
+                <h3>${item.item_name}</h3>
+                <p>Category: ${item.category}</p>
+                <p>Price: $${item.price}</p>
+            </div>
+        `).join('');
+        
+        itemList.innerHTML = itemsHTML;
     } else {
-        itemList.innerHTML = `<p>No items found for face ${faceId}</p>`;
+        // Always show a message for empty sections
+        itemList.innerHTML = '<p>There are no items in this section</p>';
     }
+    
+    // Make sure the display is visible
+    itemDisplay.style.display = 'block';
 }
 
 // Update the event listeners
 canvas.addEventListener('mousemove', handleMouseMove);
-canvas.addEventListener('mouseleave', handleMouseLeave);
 canvas.addEventListener('click', handleClick); 
