@@ -21,46 +21,22 @@
             margin-bottom: 20px;
             border: 1px solid #ccc;
         }
-        .upload-group {
+        .controls {
             margin-bottom: 15px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
         }
-        .upload-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .upload-group input[type="file"] {
-            display: block;
-            margin-bottom: 10px;
-        }
-        #loadButton {
-            background-color: #2ecc71;
-            color: white;
-            border: none;
-            padding: 10px 20px;
+        .controls select {
+            padding: 10px;
             border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        #loadButton:hover {
-            background-color: #27ae60;
-        }
-        #loadButton:disabled {
-            background-color: #bdc3c7;
-            cursor: not-allowed;
+            border: 1px solid #ccc;
+            min-width: 200px;
         }
         #mapCanvas {
             border: 1px solid #ccc;
             background-color: white;
             margin-bottom: 20px;
-            display: none;
-        }
-        #itemDisplay {
-            padding: 20px;
-            background-color: white;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            min-height: 200px;
             display: none;
         }
         #tooltip {
@@ -75,6 +51,14 @@
             border: 1px solid #ccc;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
+        #itemDisplay {
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            min-height: 200px;
+            display: none;
+        }
         .error {
             color: red;
             margin-top: 10px;
@@ -86,17 +70,14 @@
         <h1>Store Map</h1>
         
         <div class="upload-section">
-            <div class="upload-group">
-                <label for="verticesFile">Store Layout (vertices.json):</label>
-                <input type="file" id="verticesFile" accept=".json">
+            <div class="controls">
+                <select id="store-select">
+                    <option value="">Select Store</option>
+                </select>
+                <select id="floor-select">
+                    <option value="">Select Floor</option>
+                </select>
             </div>
-            
-            <div class="upload-group">
-                <label for="itemsFile">Items Data (items.csv):</label>
-                <input type="file" id="itemsFile" accept=".csv">
-            </div>
-            
-            <button id="loadButton" disabled>Load Store Map</button>
             <div id="uploadError" class="error"></div>
         </div>
 
@@ -107,6 +88,88 @@
             <div id="itemList"></div>
         </div>
     </div>
+
     <script src="map.js"></script>
+    <script>
+        // Initialize UI elements
+        const storeSelect = document.getElementById('store-select');
+        const floorSelect = document.getElementById('floor-select');
+        const mapCanvas = document.getElementById('mapCanvas');
+        const uploadError = document.getElementById('uploadError');
+        const itemDisplay = document.getElementById('itemDisplay');
+
+        // Fetch stores
+        fetch('/api/stores')
+            .then(response => {
+                console.log('Stores response:', response);
+                return response.json();
+            })
+            .then(stores => {
+                console.log('Available stores:', stores);
+                stores.forEach(store => {
+                    const option = document.createElement('option');
+                    option.value = store;
+                    option.textContent = store;
+                    storeSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching stores:', error);
+                uploadError.textContent = 'Error loading stores: ' + error.message;
+            });
+
+        // Handle store selection
+        storeSelect.addEventListener('change', () => {
+            const storeId = storeSelect.value;
+            console.log('Selected store:', storeId);
+            floorSelect.innerHTML = '<option value="">Select Floor</option>';
+            
+            if (storeId) {
+                fetch(`/api/floors/${storeId}`)
+                    .then(response => {
+                        console.log('Floors response:', response);
+                        return response.json();
+                    })
+                    .then(floors => {
+                        console.log('Available floors:', floors);
+                        floors.forEach(floor => {
+                            const option = document.createElement('option');
+                            option.value = floor.floor_id;
+                            option.textContent = floor.floor_id;
+                            floorSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching floors:', error);
+                        uploadError.textContent = 'Error loading floors: ' + error.message;
+                    });
+            }
+        });
+
+        // Handle floor selection
+        floorSelect.addEventListener('change', () => {
+            const storeId = storeSelect.value;
+            const floorId = floorSelect.value;
+            console.log('Selected store and floor:', storeId, floorId);
+            
+            if (storeId && floorId) {
+                uploadError.textContent = '';
+                mapCanvas.style.display = 'none';
+                itemDisplay.style.display = 'none';
+                
+                Promise.all([
+                    fetch(`/api/layout/${storeId}/${floorId}`).then(r => r.json()),
+                    fetch(`/api/items/${storeId}/${floorId}`).then(r => r.json())
+                ]).then(([layout, items]) => {
+                    console.log('Layout and items loaded:', layout, items);
+                    mapCanvas.style.display = 'block';
+                    initializeMap(layout, items);
+                }).catch(error => {
+                    console.error('Error loading data:', error);
+                    uploadError.textContent = 'Error loading data: ' + error.message;
+                });
+            }
+        });
+    </script>
 </body>
 </html> 

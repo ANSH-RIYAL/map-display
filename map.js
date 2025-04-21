@@ -8,10 +8,14 @@ const canvas = document.getElementById('mapCanvas');
 const ctx = canvas.getContext('2d');
 const tooltip = document.getElementById('tooltip');
 const itemList = document.getElementById('itemList');
-const loadButton = document.getElementById('loadButton');
-const verticesFile = document.getElementById('verticesFile');
-const itemsFile = document.getElementById('itemsFile');
-const uploadError = document.getElementById('uploadError');
+
+// Map interaction variables
+let scale = 1;
+let offsetX = 0;
+let offsetY = 0;
+let isDragging = false;
+let lastX = 0;
+let lastY = 0;
 
 // Add tooltip styling
 tooltip.style.position = 'fixed';
@@ -26,96 +30,13 @@ tooltip.style.minWidth = '150px';
 tooltip.style.textAlign = 'center';
 tooltip.style.display = 'none';
 
-// File handling
-let verticesData = null;
-let itemsData = null;
-
 // Add this variable to track the timeout
 let tooltipTimeout = null;
 
-// Event listeners for file inputs
-verticesFile.addEventListener('change', handleVerticesFile);
-itemsFile.addEventListener('change', handleItemsFile);
-loadButton.addEventListener('click', initializeMap);
-
-function handleVerticesFile(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                verticesData = JSON.parse(e.target.result);
-                console.log('Loaded vertices data:', verticesData);
-                checkFiles();
-            } catch (error) {
-                uploadError.textContent = 'Invalid vertices.json file format';
-                verticesData = null;
-                checkFiles();
-            }
-        };
-        reader.readAsText(file);
-    }
-}
-
-function handleItemsFile(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                itemsData = parseCSV(e.target.result);
-                console.log('Loaded items data (first 3):', JSON.stringify(itemsData.slice(0, 3), null, 2));
-                checkFiles();
-            } catch (error) {
-                console.error('Error parsing CSV:', error);
-                uploadError.textContent = 'Invalid items.csv file format';
-                itemsData = null;
-                checkFiles();
-            }
-        };
-        reader.readAsText(file);
-    }
-}
-
-function parseCSV(csvText) {
-    const lines = csvText.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim());
-    
-    // Create a map to group items by face_id
-    const itemsByFace = {};
-    
-    lines.slice(1).forEach(line => {
-        const values = line.split(',').map(v => v.trim());
-        const item = {};
-        headers.forEach((header, i) => {
-            item[header] = values[i];
-        });
-        
-        // Group items by face_id
-        if (!itemsByFace[item.face_id]) {
-            itemsByFace[item.face_id] = {
-                face_id: item.face_id,
-                section_name: item.section_name,
-                category: item.category,
-                items: []
-            };
-        }
-        itemsByFace[item.face_id].items.push(item);
-    });
-    
-    // Convert the map to an array
-    return Object.values(itemsByFace);
-}
-
-function checkFiles() {
-    loadButton.disabled = !(verticesData && itemsData);
-    uploadError.textContent = '';
-}
-
-function initializeMap() {
+function initializeMap(layout, itemsData) {
     try {
         // Set the store layout
-        storeLayout = verticesData;
+        storeLayout = layout;
         items = itemsData;
         
         // Generate faces from vertices
@@ -123,7 +44,7 @@ function initializeMap() {
         
         // Show the map and item display
         canvas.style.display = 'block';
-        itemDisplay.style.display = 'block';
+        document.getElementById('itemDisplay').style.display = 'block';
         
         // Initial render
         drawMap();
@@ -133,7 +54,7 @@ function initializeMap() {
         
     } catch (error) {
         console.error('Error in initializeMap:', error);
-        uploadError.textContent = 'Error initializing map: ' + error.message;
+        document.getElementById('uploadError').textContent = 'Error initializing map: ' + error.message;
     }
 }
 
@@ -182,6 +103,9 @@ function generateFaces() {
 // Draw the store map
 function drawMap(highlightedFace = null) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
     
     // Draw store boundary
     ctx.beginPath();
@@ -224,7 +148,7 @@ function drawMap(highlightedFace = null) {
         ctx.lineWidth = 2;
         ctx.stroke();
     });
-
+    
     // Draw highlighted face if exists
     if (highlightedFace) {
         ctx.beginPath();
@@ -234,6 +158,115 @@ function drawMap(highlightedFace = null) {
         ctx.lineWidth = 4;
         ctx.stroke();
     }
+    
+    ctx.restore();
+}
+
+// Handle mouse events
+canvas.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+});
+
+canvas.addEventListener('mousemove', handleMouseMove);
+
+canvas.addEventListener('mouseup', () => {
+    isDragging = false;
+});
+
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    scale *= delta;
+    drawMap();
+});
+
+// Handle mouse move for hover effect
+function handleMouseMove(event) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (event.clientX - rect.left - offsetX) / scale;
+    const y = (event.clientY - rect.top - offsetY) / scale;
+    
+    if (isDragging) {
+        const dx = event.clientX - lastX;
+        const dy = event.clientY - lastY;
+        offsetX += dx;
+        offsetY += dy;
+        lastX = event.clientX;
+        lastY = event.clientY;
+        drawMap();
+    }
+    
+    // Find the face under the cursor
+    const face = faces.find(f => isPointNearLine(x, y, f));
+    
+    if (face) {
+        // Clear any existing timeout
+        if (tooltipTimeout) {
+            clearTimeout(tooltipTimeout);
+        }
+        
+        // Find the face info in items data
+        const faceInfo = items.find(item => item.face_id === face.face_id);
+        
+        // Set tooltip content with both face ID and section name
+        if (faceInfo) {
+            tooltip.textContent = `Face ID: ${face.face_id}\nSection: ${faceInfo.section_name}`;
+        } else {
+            tooltip.textContent = `Face ID: ${face.face_id}\nSection: Not Assigned`;
+        }
+        
+        tooltip.style.display = 'block';
+        tooltip.style.left = (event.clientX + 10) + 'px';
+        tooltip.style.top = (event.clientY + 10) + 'px';
+        
+        // Set a timeout to hide the tooltip
+        tooltipTimeout = setTimeout(() => {
+            tooltip.style.display = 'none';
+        }, 2000);
+    } else {
+        tooltip.style.display = 'none';
+    }
+}
+
+// Handle click to display items
+canvas.addEventListener('click', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = (event.clientX - rect.left - offsetX) / scale;
+    const y = (event.clientY - rect.top - offsetY) / scale;
+    
+    // Find the face under the cursor with a 3-pixel buffer
+    const face = faces.find(f => isPointNearLine(x, y, f));
+    
+    if (face) {
+        displayItems(face.face_id);
+    }
+});
+
+// Display items for selected face
+function displayItems(faceId) {
+    // Find items for the selected face
+    const faceItems = items.filter(item => item.face_id === faceId);
+    
+    if (faceItems.length > 0) {
+        // Create a list of items
+        const itemsHTML = faceItems.map(item => `
+            <div class="item">
+                <h3>${item.item_name}</h3>
+                <p>Category: ${item.category}</p>
+                <p>Price: $${item.price}</p>
+                <p>Stock: ${item.stock}</p>
+            </div>
+        `).join('');
+        
+        itemList.innerHTML = itemsHTML;
+    } else {
+        itemList.innerHTML = '<p>No items found in this section</p>';
+    }
+    
+    // Make sure the display is visible
+    document.getElementById('itemDisplay').style.display = 'block';
 }
 
 // Check if point is near line segment
@@ -270,120 +303,4 @@ function isPointNearLine(x, y, face) {
     
     // Return true if distance is less than 4 pixels for hover, 3 pixels for click
     return distance < 4;
-}
-
-// Handle mouse move for hover effect
-function handleMouseMove(event) {
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    
-    // Find the face under the cursor
-    const face = faces.find(f => isPointNearLine(x, y, f));
-    
-    if (face) {
-        // Clear any existing timeout
-        if (tooltipTimeout) {
-            clearTimeout(tooltipTimeout);
-        }
-        
-        // Find the face info in items data
-        const faceInfo = items.find(item => item.face_id === face.face_id);
-        
-        // Set tooltip content with both face ID and section name
-        if (faceInfo) {
-            tooltip.textContent = `Face ID: ${face.face_id}\nSection: ${faceInfo.section_name}`;
-        } else {
-            tooltip.textContent = `Face ID: ${face.face_id}\nSection: Not Assigned`;
-        }
-        
-        tooltip.style.display = 'block';
-        tooltip.style.left = (event.clientX + 10) + 'px';
-        tooltip.style.top = (event.clientY + 10) + 'px';
-        
-        // Set a timeout to hide the tooltip
-        tooltipTimeout = setTimeout(() => {
-            tooltip.style.display = 'none';
-        }, 2000);
-    } else {
-        tooltip.style.display = 'none';
-    }
-}
-
-// Handle click to display items
-function handleClick(event) {
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    
-    // Find the face under the cursor with a 3-pixel buffer
-    const face = faces.find(f => {
-        const A = x - f.start_x;
-        const B = y - f.start_y;
-        const C = f.end_x - f.start_x;
-        const D = f.end_y - f.start_y;
-        
-        const dot = A * C + B * D;
-        const len_sq = C * C + D * D;
-        let param = -1;
-        
-        if (len_sq !== 0) {
-            param = dot / len_sq;
-        }
-        
-        let xx, yy;
-        
-        if (param < 0) {
-            xx = f.start_x;
-            yy = f.start_y;
-        } else if (param > 1) {
-            xx = f.end_x;
-            yy = f.end_y;
-        } else {
-            xx = f.start_x + param * C;
-            yy = f.start_y + param * D;
-        }
-        
-        const dx = x - xx;
-        const dy = y - yy;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        return distance < 3;
-    });
-    
-    if (face) {
-        displayItems(face.face_id);
-    }
-}
-
-// Display items for selected face
-function displayItems(faceId) {
-    const itemList = document.getElementById('itemList');
-    const itemDisplay = document.getElementById('itemDisplay');
-    
-    // Find items for the selected face
-    const faceItems = items.find(item => item.face_id === faceId);
-    
-    if (faceItems && faceItems.items && faceItems.items.length > 0) {
-        // Create a list of items
-        const itemsHTML = faceItems.items.map(item => `
-            <div class="item">
-                <h3>${item.item_name}</h3>
-                <p>Category: ${item.category}</p>
-                <p>Price: $${item.price}</p>
-            </div>
-        `).join('');
-        
-        itemList.innerHTML = itemsHTML;
-    } else {
-        // Always show a message for empty sections
-        itemList.innerHTML = '<p>There are no items in this section</p>';
-    }
-    
-    // Make sure the display is visible
-    itemDisplay.style.display = 'block';
-}
-
-// Update the event listeners
-canvas.addEventListener('mousemove', handleMouseMove);
-canvas.addEventListener('click', handleClick); 
+} 
